@@ -1,0 +1,507 @@
+<!--
+    Guitar Chord Looper
+    Author: jsandv (github)
+    Created: 2025
+    License: All rights reserved
+
+    This software is not open source and may not be copied, redistributed,
+    or used without the author's explicit permission.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <meta name="author" content="jsandv" />
+    <meta name="description" content="An interactive guitar chord looper with fretboard visualization and note playback." />
+    <meta name="keywords" content="guitar, chord, looper, fretboard, music, interactive, web app" />
+    <meta name="robots" content="index, follow" />
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#000000">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
+
+
+    <title>Guitar Chord Looper</title>
+
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+        }
+
+        .fretboard-wrapper {
+            display: flex;
+            margin-top: 20px;
+        }
+
+        .string-labels {
+            display: grid;
+            grid-template-rows: repeat(6, 30px);
+            margin-right: 5px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+            .string-labels div {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                height: 30px;
+            }
+
+        .fretboard {
+            display: grid;
+            grid-template-columns: repeat(25, 40px);
+            grid-template-rows: repeat(6, 30px);
+            gap: 2px;
+        }
+
+        .string {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #ccc;
+            font-size: 12px;
+        }
+
+        .note {
+            border-radius: 50%;
+            padding: 4px;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .root {
+            background-color: red;
+            color: white;
+        }
+
+        .third {
+            background-color: green;
+            color: white;
+        }
+
+        .fifth {
+            background-color: blue;
+            color: white;
+        }
+
+        .scale-note-label {
+            color: #888;
+            font-size: 10px;
+        }
+
+        .next-chord-note {
+            color: #666;
+            border: 2px dashed red;
+            font-size: 10px;
+        }
+
+        .chord-buttons {
+            margin: 10px 0;
+        }
+
+            .chord-buttons button {
+                font-size: 1.2em;
+                margin: 5px;
+                padding: 10px 15px;
+            }
+
+        #chordSequence {
+            width: 100%;
+            padding: 5px;
+            font-size: 1.1em;
+        }
+
+        #nowPlaying {
+            font-size: 1.4em;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        #fretMarkers {
+            display: grid;
+            grid-template-columns: repeat(25, 40px);
+            gap: 2px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+
+        .marker {
+            color: #888;
+        }
+
+        .double-dot {
+            color: #444;
+            text-decoration: underline;
+        }
+
+        h2 {
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <h3>in-development, tba</h3>
+    <h1>Guitar Chord Looper</h1>
+    <div>
+        <label>Time Signature:</label>
+        <select id="timeSignature">
+            <option value="4/4" selected>4/4</option>
+            <option value="3/4">3/4</option>
+            <option value="6/8">6/8</option>
+        </select>
+
+        <label>BPM:</label>
+        <input type="number" id="bpm" value="120" min="30" max="300" style="width:60px;" />
+
+    </div>
+    <label>Select Key:</label>
+    <select id="keyRoot" onchange="updateChordsFromKey()">
+        <option value="C">C</option>
+        <option value="A">A</option>
+        <option value="D#" selected>D#</option>
+        <option value="E">E</option>
+    </select>
+    <select id="keyType" onchange="updateChordsFromKey()">
+        <option value="major">Major</option>
+        <option value="minor" selected>Minor</option>
+    </select>
+
+    <div class="chord-buttons" id="chordButtons"></div>
+
+    <label>Edit Chord Sequence (space-separated):</label><br />
+    <input type="text" id="chordSequence" value="D#m B F# C#" oninput="updateChordListFromInput()" /><br /><br />
+    <label>Octave:</label>
+    <select id="octaveSelector">
+        <option value="2">2</option>
+        <option value="3" selected>3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+    </select>
+    <label>Fret Range:</label>
+    <input type="number" id="minFret" value="0" min="0" max="24" style="width:60px;" />
+    –
+    <input type="number" id="maxFret" value="24" min="0" max="24" style="width:60px;" />
+    <button onclick="renderCurrentFretboard()">Apply Range</button>
+
+    <button onclick="startLoop()">Start Loop</button>
+    <button onclick="stopLoop()">Stop</button>
+    <button onclick="prevChord()">⟵ Previous</button>
+    <button onclick="nextChord()">Next ⟶</button>
+
+    <div id="nowPlaying">Now Playing: —</div>
+
+    <h2>Preview Chord</h2>
+    <div class="chord-buttons" id="previewChords"></div>
+
+    <div id="fretMarkers"></div>
+
+    <div class="fretboard-wrapper">
+        <div class="string-labels" id="stringLabels"></div>
+        <div class="fretboard" id="fretboard"></div>
+    </div>
+
+    <script>
+        const allNotes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        const stringLabels = ['e', 'B', 'G', 'D', 'A', 'E'];
+        const stringPitches = ['E', 'B', 'G', 'D', 'A', 'E'];
+
+        function getFretNotes(openNote) {
+            const start = allNotes.indexOf(openNote);
+            return Array.from({ length: 25 }, (_, i) => allNotes[(start + i) % 12]);
+        }
+
+        const fretboardNotes = stringPitches.map(getFretNotes);
+
+        const allChords = {
+            "C": ["C", "E", "G"], "Cm": ["C", "D#", "G"], "Cdim": ["C", "D#", "F#"],
+            "C#": ["C#", "F", "G#"], "C#m": ["C#", "E", "G#"], "C#dim": ["C#", "E", "G"],
+            "D": ["D", "F#", "A"], "Dm": ["D", "F", "A"], "Ddim": ["D", "F", "G#"],
+            "D#": ["D#", "G", "A#"], "D#m": ["D#", "F#", "A#"], "D#dim": ["D#", "F#", "A"],
+            "E": ["E", "G#", "B"], "Em": ["E", "G", "B"], "Edim": ["E", "G", "A#"],
+            "F": ["F", "A", "C"], "Fm": ["F", "G#", "C"], "Fdim": ["F", "G#", "B"],
+            "F#": ["F#", "A#", "C#"], "F#m": ["F#", "A", "C#"], "F#dim": ["F#", "A", "C"],
+            "G": ["G", "B", "D"], "Gm": ["G", "A#", "D"], "Gdim": ["G", "A#", "C#"],
+            "G#": ["G#", "C", "D#"], "G#m": ["G#", "B", "D#"], "G#dim": ["G#", "B", "D"],
+            "A": ["A", "C#", "E"], "Am": ["A", "C", "E"], "Adim": ["A", "C", "D#"],
+            "A#": ["A#", "D", "F"], "A#m": ["A#", "C#", "F"], "A#dim": ["A#", "C#", "E"],
+            "B": ["B", "D#", "F#"], "Bm": ["B", "D", "F#"], "Bdim": ["B", "D", "F"]
+        };
+
+        const scaleNotesMap = {
+            "Cmajor": ["C", "D", "E", "F", "G", "A", "B"],
+            "Aminor": ["A", "B", "C", "D", "E", "F", "G"],
+            "D#minor": ["D#", "F", "F#", "G#", "A#", "B", "C#"],
+            "Eminor": ["E", "F#", "G", "A", "B", "C", "D"]
+        };
+
+        const chordMap = {
+            "Cmajor": ["C", "Dm", "Em", "F", "G", "Am", "Bdim"],
+            "Aminor": ["Am", "Bdim", "C", "Dm", "Em", "F", "G"],
+            "D#minor": ["D#m", "E#dim", "F#", "G#m", "A#m", "B", "C#"],
+            "Eminor": ["Em", "F#dim", "G", "Am", "Bm", "C", "D"]
+        };
+
+        let loopInterval = null;
+        let currentIndex = 0;
+        let chordList = [];
+        let currentScaleNotes = [];
+
+        function getChordsInKey(root, type) {
+            return chordMap[root + type] || [];
+        }
+
+        function getScaleNotes(root, type) {
+            return scaleNotesMap[root + type] || [];
+        }
+
+        function updateChordsFromKey() {
+            const root = document.getElementById("keyRoot").value;
+            const type = document.getElementById("keyType").value;
+            const chords = getChordsInKey(root, type);
+            currentScaleNotes = getScaleNotes(root, type);
+
+            const buttonsContainer = document.getElementById("chordButtons");
+            const previewContainer = document.getElementById("previewChords");
+            buttonsContainer.innerHTML = "";
+            previewContainer.innerHTML = "";
+
+            chords.forEach(chord => {
+                const btn1 = document.createElement("button");
+                btn1.innerText = chord;
+                btn1.onclick = () => addChord(chord);
+                buttonsContainer.appendChild(btn1);
+
+                const btn2 = document.createElement("button");
+                btn2.innerText = chord;
+                btn2.onclick = () => renderFretboard(chord, null);
+                previewContainer.appendChild(btn2);
+            });
+
+            renderFretboard(null, null);
+        }
+
+        function addChord(chord) {
+            chordList.push(chord);
+            updateChordSequenceInput();
+        }
+
+        function updateChordSequenceInput() {
+            document.getElementById("chordSequence").value = chordList.join(" ");
+        }
+
+        function updateChordListFromInput() {
+            const input = document.getElementById("chordSequence").value.trim();
+            chordList = input.split(/\s+/).filter(c => allChords[c]);
+        }
+
+        function getNoteRole(note, chord) {
+            const chordNotes = allChords[chord];
+            if (!chordNotes) return null;
+            const [root, third, fifth] = chordNotes;
+            if (note === root) return "root";
+            if (note === third) return "third";
+            if (note === fifth) return "fifth";
+            return null;
+        }
+
+        function renderFretboard(currentChord, nextChord, playSound = false) {
+            document.getElementById("nowPlaying").textContent = currentChord
+                ? "Now Playing: " + currentChord
+                : "Now Playing: —";
+
+            const markerRow = document.getElementById("fretMarkers");
+            markerRow.innerHTML = "";
+
+            const minFret = Math.max(0, parseInt(document.getElementById("minFret").value) || 0);
+            const maxFret = Math.min(24, parseInt(document.getElementById("maxFret").value) || 24);
+
+            for (let i = minFret; i <= maxFret; i++) {
+                const div = document.createElement("div");
+                if ([3, 5, 7, 9, 12, 15, 17, 19, 21].includes(i)) {
+                    div.className = i === 12 ? "double-dot" : "marker";
+                    div.textContent = i;
+                } else {
+                    div.textContent = "";
+                }
+                markerRow.appendChild(div);
+            }
+
+            const labelCol = document.getElementById("stringLabels");
+            labelCol.innerHTML = "";
+            stringLabels.forEach(label => {
+                const div = document.createElement("div");
+                div.textContent = label;
+                labelCol.appendChild(div);
+            });
+
+            const container = document.getElementById("fretboard");
+            const fretboardElement = document.getElementById("fretboard");
+            fretboardElement.style.gridTemplateColumns = `repeat(${maxFret - minFret + 1}, 40px)`;
+
+            container.innerHTML = "";
+            const currentNotes = currentChord ? allChords[currentChord] : [];
+            const nextNotes = nextChord ? allChords[nextChord] : [];
+
+            for (let s = 0; s < 6; s++) {
+                for (let f = minFret; f <= maxFret; f++) {
+                    const note = fretboardNotes[s][f];
+                    const div = document.createElement("div");
+                    div.className = "string";
+                    div.onclick = () => {
+                        const freq = getNoteFrequency(s, f);
+                        playNote(freq);
+                    };
+                    const role = getNoteRole(note, currentChord);
+                    if (role) {
+                        div.innerHTML = `<div class="note ${role}">${note}</div>`;
+                        if (nextNotes.includes(note)) {
+                            div.classList.add("next-chord-note");
+                        }
+                    } else if (nextNotes.includes(note)) {
+                        div.textContent = note;
+                        div.classList.add("next-chord-note");
+                    } else if (currentScaleNotes.includes(note)) {
+                        div.textContent = note;
+                        div.classList.add("scale-note-label");
+                    }
+
+                    container.appendChild(div);
+                }
+            }
+            if (playSound && currentChord && allChords[currentChord]) {
+                const baseNotes = allChords[currentChord];
+                // Loop through fretboard and play only unique string positions matching chord notes
+                for (let s = 0; s < 6; s++) {
+                    const selectedOctave = parseInt(document.getElementById("octaveSelector").value);
+                    const baseOpenFreqs = [329.63, 246.94, 196.00, 146.83, 110.00, 82.41]; // standard
+                    const baseOctaves = [4, 3, 3, 3, 2, 2]; // corresponding to above
+
+                    let openFreq = baseOpenFreqs[s];
+                    const octaveShift = selectedOctave - baseOctaves[s];
+                    openFreq = openFreq * Math.pow(2, octaveShift);
+                    for (let f = 0; f <= 24; f++) {
+                        const note = fretboardNotes[s][f];
+                        if (baseNotes.includes(note)) {
+                            const freq = openFreq * Math.pow(2, f / 12);
+                            playNote(freq);
+                            break; // Play only the first matching note per string
+                        }
+                    }
+                }
+            }
+        }
+        function startLoop() {
+            updateChordListFromInput();
+            if (chordList.length === 0) return;
+
+            const bpm = parseInt(document.getElementById("bpm").value) || 90;
+            const timeSig = document.getElementById("timeSignature").value;
+            const [beatsPerBar] = timeSig.split('/').map(Number); // e.g., 4 from 4/4
+
+            const msPerBeat = (60 / bpm) * 1000;
+
+            currentIndex = 0;
+            let beatCount = 1;
+
+            const currentChord = () => chordList[currentIndex];
+            const nextChord = () => chordList[(currentIndex + 1) % chordList.length];
+
+            clearInterval(loopInterval);
+            renderFretboard(currentChord(), nextChord(), true);
+
+            loopInterval = setInterval(() => {
+                beatCount++;
+
+                // Play the chord again (one beat)
+                renderFretboard(currentChord(), nextChord(), true);
+
+                if (beatCount >= beatsPerBar) {
+                    beatCount = 0;
+                    currentIndex = (currentIndex + 1) % chordList.length;
+                }
+            }, msPerBeat);
+        }
+
+
+        function stopLoop() {
+            clearInterval(loopInterval);
+        }
+
+        function prevChord() {
+            updateChordListFromInput();
+            if (chordList.length === 0) return;
+            currentIndex = (currentIndex - 1 + chordList.length) % chordList.length;
+            renderFretboard(chordList[currentIndex], chordList[(currentIndex + 1) % chordList.length]);
+        }
+
+        function nextChord() {
+            updateChordListFromInput();
+            if (chordList.length === 0) return;
+            currentIndex = (currentIndex + 1) % chordList.length;
+            renderFretboard(chordList[currentIndex], chordList[(currentIndex + 1) % chordList.length]);
+        }
+
+        function renderCurrentFretboard() {
+            const current = chordList[currentIndex] ?? null;
+            const next = chordList.length > 0 ? chordList[(currentIndex + 1) % chordList.length] : null;
+            renderFretboard(current, next);
+        }
+
+
+
+        function getNoteFrequency(stringIndex, fretIndex) {
+            const openNoteFrequencies = [329.63, 246.94, 196.00, 146.83, 110.00, 82.41]; // e B G D A E (high to low)
+            const openFreq = openNoteFrequencies[stringIndex];
+            return openFreq * Math.pow(2, fretIndex / 12);
+        }
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playNote(frequency, duration = 0.6, delay = 0) {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.type = 'sine';
+            oscillator.frequency.value = frequency;
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            const now = audioContext.currentTime + delay;
+            gainNode.gain.setValueAtTime(0.2, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.00001, now + duration);
+
+            oscillator.start(now);
+            oscillator.stop(now + duration);
+        }
+        window.onload = updateChordsFromKey;
+
+
+
+        if ("serviceWorker" in navigator) {
+            window.addEventListener("load", () => {
+                navigator.serviceWorker
+                    .register("service-worker.js")
+                    .then(registration => {
+                        console.log("Service Worker registered with scope:", registration.scope);
+                    })
+                    .catch(error => {
+                        console.error("Service Worker registration failed:", error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
